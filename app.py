@@ -1,235 +1,83 @@
 import streamlit as st
 from pathlib import Path
-import os
 import shutil
-import pandas as pd
-import zipfile
-import time
 
-st.set_page_config(page_title="Azzu Ultimate File Explorer", layout="wide")
+st.set_page_config(page_title="File Manager", page_icon="📁", layout="centered")
 
-BASE_PATH = Path.cwd()
+st.title("📁 Simple File Manager")
 
-st.title("🚀 Azzu Ultimate File Explorer")
-st.caption("Advanced Streamlit File Manager with Drag & Drop, Zip, Multi Select, Preview")
+BASE_PATH = Path(".")
 
 
-# =====================================================
-# Helpers
-# =====================================================
-
-def icon(path: Path):
-    return "📁" if path.is_dir() else "📄"
-
-
-def file_dataframe():
-    rows = []
-
-    for p in BASE_PATH.rglob("*"):
-        rows.append({
-            "Icon": icon(p),
-            "Name": p.name,
-            "Type": "Folder" if p.is_dir() else "File",
-            "Size (KB)": round(p.stat().st_size / 1024, 2),
-            "Path": str(p)
-        })
-
-    return pd.DataFrame(rows)
+# ---------------- CREATE FOLDER ----------------
+def create_folder(name):
+    p = BASE_PATH / name
+    if not p.exists():
+        p.mkdir()
+        st.success("✅ Folder created successfully")
+    else:
+        st.warning("⚠️ Folder already exists")
 
 
-def make_zip(files, zip_name="files.zip"):
-    with zipfile.ZipFile(zip_name, "w") as z:
-        for f in files:
-            z.write(f, arcname=Path(f).name)
-    return zip_name
+# ---------------- LIST FILES ----------------
+def list_files():
+    items = list(BASE_PATH.rglob("*"))
+    return [str(i) for i in items]
 
 
-# =====================================================
-# Sidebar Menu
-# =====================================================
+# ---------------- DELETE ----------------
+def delete_path(name):
+    p = Path(name)
 
-menu = st.sidebar.radio(
-    "📌 Menu",
-    [
-        "Dashboard",
-        "Upload (Drag & Drop)",
-        "Create",
-        "Preview / Download",
-        "Rename",
-        "Delete",
-        "Zip Download"
-    ]
+    if p.exists():
+        if p.is_file():
+            p.unlink()
+        else:
+            shutil.rmtree(p)
+
+        st.success("🗑 Deleted successfully")
+    else:
+        st.error("❌ Path not found")
+
+
+# ================= UI =================
+
+menu = st.sidebar.selectbox(
+    "Choose Option",
+    ["Create Folder", "List Files", "Delete File/Folder"]
 )
 
 
-# =====================================================
-# 1️⃣ Dashboard
-# =====================================================
+# ---- CREATE ----
+if menu == "Create Folder":
+    st.subheader("Create Folder")
 
-if menu == "Dashboard":
+    folder_name = st.text_input("Enter folder name")
 
-    st.subheader("📊 File Explorer Dashboard")
-
-    df = file_dataframe()
-
-    search = st.text_input("🔍 Search")
-
-    filter_type = st.selectbox("Filter", ["All", "File", "Folder"])
-
-    if search:
-        df = df[df["Name"].str.contains(search, case=False)]
-
-    if filter_type != "All":
-        df = df[df["Type"] == filter_type]
-
-    st.dataframe(df, use_container_width=True)
+    if st.button("Create"):
+        if folder_name:
+            create_folder(folder_name)
 
 
-# =====================================================
-# 2️⃣ Drag & Drop Upload + Progress bar
-# =====================================================
+# ---- LIST ----
+elif menu == "List Files":
+    st.subheader("All Files & Folders")
 
-elif menu == "Upload (Drag & Drop)":
-
-    st.subheader("⬆ Drag & Drop Upload")
-
-    files = st.file_uploader(
-        "Drop files here",
-        accept_multiple_files=True
-    )
+    files = list_files()
 
     if files:
-        progress = st.progress(0)
-
-        for i, file in enumerate(files):
-
-            with open(file.name, "wb") as f:
-                f.write(file.getbuffer())
-
-            time.sleep(0.2)
-            progress.progress((i + 1) / len(files))
-
-        st.success("All files uploaded ✅")
+        st.write(files)
+    else:
+        st.info("Empty directory")
 
 
-# =====================================================
-# 3️⃣ Create
-# =====================================================
+# ---- DELETE ----
+elif menu == "Delete File/Folder":
+    st.subheader("Delete File/Folder")
 
-elif menu == "Create":
+    files = list_files()
 
-    tab1, tab2 = st.tabs(["📁 Folder", "📄 File"])
+    selected = st.selectbox("Select file/folder", files)
 
-    with tab1:
-        name = st.text_input("Folder name")
-
-        if st.button("Create Folder"):
-            (BASE_PATH / name).mkdir(exist_ok=True)
-            st.success("Folder created")
-
-    with tab2:
-        name = st.text_input("File name")
-        content = st.text_area("Content")
-
-        if st.button("Create File"):
-            with open(name, "w") as f:
-                f.write(content)
-            st.success("File created")
-
-
-# =====================================================
-# 4️⃣ Preview + Download
-# =====================================================
-
-elif menu == "Preview / Download":
-
-    st.subheader("📖 Preview & Download")
-
-    name = st.text_input("File name")
-
-    if st.button("Open"):
-
-        p = BASE_PATH / name
-
-        if p.exists() and p.is_file():
-
-            with open(p, "r", errors="ignore") as f:
-                st.text_area("Content", f.read(), height=300)
-
-            with open(p, "rb") as f:
-                st.download_button("⬇ Download", f, file_name=name)
-
-        else:
-            st.error("File not found")
-
-
-# =====================================================
-# 5️⃣ Rename
-# =====================================================
-
-elif menu == "Rename":
-
-    st.subheader("✏ Rename")
-
-    old = st.text_input("Old name")
-    new = st.text_input("New name")
-
-    if st.button("Rename"):
-        old_p = BASE_PATH / old
-        new_p = BASE_PATH / new
-
-        if old_p.exists():
-            old_p.rename(new_p)
-            st.success("Renamed successfully")
-        else:
-            st.error("Not found")
-
-
-# =====================================================
-# 6️⃣ Delete (Multi select)
-# =====================================================
-
-elif menu == "Delete":
-
-    st.subheader("🗑 Delete Multiple")
-
-    df = file_dataframe()
-
-    selected = st.multiselect("Select files/folders", df["Path"])
-
-    confirm = st.checkbox("Confirm delete")
-
-    if st.button("Delete Selected") and confirm:
-
-        for item in selected:
-            p = Path(item)
-
-            if p.is_dir():
-                shutil.rmtree(p)
-            else:
-                os.remove(p)
-
-        st.success("Deleted successfully")
-
-
-# =====================================================
-# 7️⃣ Zip Download (Multiple select)
-# =====================================================
-
-elif menu == "Zip Download":
-
-    st.subheader("📦 Zip Multiple Files")
-
-    df = file_dataframe()
-
-    selected = st.multiselect("Select files", df[df["Type"] == "File"]["Path"])
-
-    if st.button("Create Zip") and selected:
-
-        zip_name = make_zip(selected)
-
-        with open(zip_name, "rb") as f:
-            st.download_button("⬇ Download ZIP", f, file_name="files.zip")
-
-        os.remove(zip_name)
-
+    if st.button("Delete"):
+        delete_path(selected)
