@@ -1,0 +1,29 @@
+[
+    {
+        "name": "Azhar khan",
+        "email": "azhar123@gmail.com",
+        "phone": "7371955414",
+        "pin": "0000",
+        "account": "5W040A89W",
+        "balance": 0,
+        "history": []
+    },
+    {
+        "name": "Arfat khan",
+        "email": "arfat123@gmail.com",
+        "phone": "5432273563",
+        "pin": "4444",
+        "account": "666H3VE75",
+        "balance": 0,
+        "history": []
+    },
+    {
+        "name": "Arfat khan",
+        "email": "arfat123@gmail.com",
+        "phone": "5432273563",
+        "pin": "4444",
+        "account": "LIW868923",
+        "balance": 0,
+        "history": []
+    }
+]
