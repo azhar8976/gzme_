@@ -1,0 +1,11 @@
+streamlit
+pandas
+numpy
+plotly
+scikit-learn
+joblib
+streamlit-option-menu
+pymongo
+fpdf
+shap
+SpeechRecognition
